@@ -1,6 +1,6 @@
 clear all;close all;clc;
 
-bits = [1 0 0 0 0 0 0 0 0 0 1 1 0 0 0 1 0 0 0 0 1 1];
+bits = [1 0 0 0 0 0 0 0 0 0 0];
 voltage = 3;
 
 zero_cnt = 0;
@@ -19,7 +19,9 @@ for i = 1 : length(bits)
         modulated(i-1) = -prv_nonzero_voltage;
         modulated(i) = prv_nonzero_voltage;
         zero_cnt = 0;
-    endif
+    elseif bits(i) == 0
+        modulated(i) = 0
+   endif
 endfor
 
 bit_duration = 1;

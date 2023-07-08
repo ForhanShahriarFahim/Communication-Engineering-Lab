@@ -30,7 +30,7 @@ for i = 1:length(time)
     if time(i)*bitrate >= index
         index = index+1;
         #... Inversion when next bit "0"
-        if index <= length(bits) && bits(index) == 0
+        if index <= length(bits) && bits(index) == 1
             sign = -1*sign;
         endif
     endif

@@ -34,6 +34,7 @@ endfor
 
 plot(time, modulation, "LineWidth", 1);
 axis([0 endTime -voltage-5 voltage+5]);
+line([0 end_time], [0,0]);
 grid on;
 
 #... Demodulation

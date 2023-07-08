@@ -16,7 +16,7 @@ endTime = length(bits)/bitrate;
 time = 0:samplingTime:endTime;
 
 index = 1;
-sign = -1;
+sign = -1;#pervious signal is positive
 
 for i = 1:length(time)
     if bits(index) == 1

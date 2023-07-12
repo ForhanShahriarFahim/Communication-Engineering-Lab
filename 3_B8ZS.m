@@ -1,85 +1,82 @@
-clear all;close all;clc;
+clc; #... Clear command line
+clear all; #... Clear variables
+close all; #... Clear figures
 
-bits = [1 0 0 0 0 0 0 0 0 0 0 0];
-voltage = 3;
+bits = [ 0 0 0 0 0 0 0 0 0 0 0 0 1 ];
+bitset = bits;
 
-zero_cnt = 0;
-prv_nonzero_voltage = -voltage;
-for i = 1 : length(bits)
-    if bits(i) == 0
-        zero_cnt = zero_cnt + 1;
-    else
-        modulated(i) = -prv_nonzero_voltage;
-        prv_nonzero_voltage = -prv_nonzero_voltage;
-        zero_cnt = 0;
-    endif
-    if zero_cnt == 8
-        modulated(i-4) = prv_nonzero_voltage;
-        modulated(i-3) = -prv_nonzero_voltage;
-        modulated(i-1) = -prv_nonzero_voltage;
-        modulated(i) = prv_nonzero_voltage;
-        zero_cnt = 0;
-    elseif bits(i) == 0
-        modulated(i) = 0
-   endif
+#... Modulation
+bitrate = 1;
+voltage = 5;
+
+sampling_rate = 1000;
+sampling_time = 1/sampling_rate;
+
+end_time = length(bits)/bitrate;
+time = 0:sampling_time:end_time;
+
+count = 0;
+for i = 1:length(bits)
+  if bits(i) == 0
+    count = count+1;
+  else
+    count = 0;
+  endif
+  if count == 8
+    bits(i-4) = -1;
+    bits(i-3) = -1;
+    bits(i-1) = 1;
+    bits(i) = 1;
+    count = 0;
+  endif
 endfor
 
-bit_duration = 1;
-fs = 100;
-Total_time = length(bits) * bit_duration;   # time needed to send whole data
-time = 0: 1/fs: Total_time;
+index = 1;
+sign = 1;
+if bits(1) == 1 #positive signal in previous step
+  sign = -1;
+endif
 
-idx = 1;
-for i = 1 : length(time)
-    signal(i) = modulated(idx);
-    if time(i) / bit_duration >= idx
-        idx = idx + 1;
-    endif
-endfor
-
-# ploting
-plot(time, signal);
-xticks([0: bit_duration: Total_time]);
-yticks([-voltage-2: 2: voltage+2]);
-ylim([-voltage-2, voltage+2]);
-xlim([0, Total_time]);
-grid on;
-title("B8ZS");
-xlabel("Time");
-ylabel("Amplitude");
-line ([0, Total_time], [0 0], "linestyle", "--", "color", "r");
-
-
-
-
-
-%Demodulation
-idx = 1;
-prv_nonzero_voltage = -voltage;
-for i = 1 : length(time)
-    if time(i)/bit_duration >= idx
-        data = signal(i);
-
-        if data == 0
-            demodulated(idx) = 0;
-        elseif (data == prv_nonzero_voltage)
-            demodulated(idx) = 0;
-            demodulated(idx+1) = 0;
-            demodulated(idx+3) = 0;
-            demodulated(idx+4) = 0;
-
-            idx = idx + 4;
-        else
-            demodulated(idx) = 1;
-            prv_nonzero_voltage = -prv_nonzero_voltage;
+for i = 1:length(time)
+  modulation(i) = bits(index)*sign*voltage;
+  if time(i)*bitrate >= index
+        index = index+1;
+        if index <= length(bits) && bits(index) != 0
+            sign = -sign;
         endif
-        idx = idx + 1;
     endif
 endfor
 
-disp("Orginal bits:");
-disp(bits);
+plot(time, modulation);
+axis([0 end_time -voltage-5 voltage+5]);
+line([0 end_time], [0 0]);
+grid on;
+grid minor;
 
-disp("Demodulation:");
-disp(demodulated);
+#... Demodulation
+index = 1;
 
+for i = 1:length(modulation)
+  demodulation(index) = modulation(i)/voltage;
+  if time(i)*bitrate >= index
+    index = index+1;
+  endif
+endfor
+
+last = 1;
+disp(demodulation);
+for i = 1:length(demodulation)
+  if demodulation(i) != 0
+    if demodulation(i) == last
+      for j = 0:4
+        demodulation(i+j) = 0;
+      endfor
+    else
+      last = demodulation(i);
+    endif
+  endif
+endfor
+
+demodulation = abs(demodulation);
+disp(bitset);
+disp(demodulation);

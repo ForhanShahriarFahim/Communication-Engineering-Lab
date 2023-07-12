@@ -2,7 +2,7 @@ clc; #... Clear command line
 clear all; #... Clear variables
 close all; #... Clear figures
 
-bits = [1 0 1 1 0 0 1];
+bits = [1 0 1 1 0 0 1]; # 0-> 0 voltage; 1-> alternate inversion
 
 #... Modulation
 

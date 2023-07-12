@@ -1,90 +1,76 @@
-clear all;close all;clc;
+clc; #... Clear command line
+clear all; #... Clear variables
+close all; #... Clear figures
 
-bits = [1 0 0 0 1 0 0 0 0 0 1 1 0 0 0 0 0 1 0 0 0 0 0 0 0 0];
-voltage = 3;
+bits = [1 1 0 0 0 0 0 0 0 0 0];
 
-zero_cnt = 0;
-one_cnt = 0;
-prv_nonzero_voltage = -voltage;
-for i = 1 : length(bits)
-    if bits(i) == 0
-        zero_cnt = zero_cnt + 1;
-    else
-        modulated(i) = -prv_nonzero_voltage;
-        prv_nonzero_voltage = -prv_nonzero_voltage;
-        one_cnt = one_cnt + 1;
-        zero_cnt = 0;
+#... Modulation
+bitrate = 1;
+voltage = 5;
+
+sampling_rate = 1000;
+sampling_time = 1/sampling_rate;
+
+end_time = length(bits)/bitrate;
+time = 0:sampling_time:end_time;
+
+zero = 0; one = 0;
+for i = 1:length(bits)
+  if bits(i) == 0
+    zero = zero+1;
+  else
+    zero = 0;
+    one = one+1;
+  endif
+  if zero == 4
+    bits(i) = -1; #previous signal state is +ve
+    zero = 0;
+    if rem(one, 2) == 0
+      bits(i-3) = 1;
     endif
-    if zero_cnt == 4
-        if mod(one_cnt, 2) == 1
-              modulated(i) = prv_nonzero_voltage;
-              one_cnt = one_cnt + 1;
-        else
-              modulated(i-3) = -prv_nonzero_voltage;
-              modulated(i) = -prv_nonzero_voltage;
-              prv_nonzero_voltage = -prv_nonzero_voltage;
-              one_cnt = one_cnt + 2;
-         endif
-        zero_cnt = 0;
-        elseif bits(i) == 0
-          modulated(i) = 0;
-    endif
-
+  endif
 endfor
 
-bit_duration = 2;
-fs = 100;
-Total_time = length(bits) * bit_duration;   # time needed to send whole data
-time = 0: 1/fs: Total_time;
+index = 1;
+sign = -1;
 
-idx = 1;
-for i = 1 : length(time)
-    signal(i) = modulated(idx);
-    if time(i) / bit_duration >= idx
-        idx = idx + 1;
+for i = 1:length(time)
+  modulation(i) = bits(index)*sign*voltage;
+  if time(i)*bitrate >= index
+    if bits(index) == 1
+      sign = -sign;
     endif
+    index = index+1;
+  endif
 endfor
 
-# ploting
-plot(time, signal);
-xticks([0: bit_duration: Total_time]);
-yticks([-voltage-2: 2: voltage+2]);
-ylim([-voltage-2, voltage+2]);
-xlim([0, Total_time]);
+plot(time, modulation, "LineWidth",2);
+axis([0 end_time -voltage-5 voltage+5]);
+line([0 end_time], [0 0]);
 grid on;
-title("HDB3");
-xlabel("Time");
-ylabel("Amplitude");
-line ([0, Total_time], [0 0], "linestyle", "--", "color", "r");
 
+#... Demodulation
+index = 1;
 
-
-
-%Demodulation
-idx = 1;
-prv_nonzero_voltage = -voltage;
-for i = 1 : length(time)
-    if time(i)/bit_duration >= idx
-        data = signal(i);
-
-        if data == 0
-            demodulated(idx) = 0;
-        elseif (data == prv_nonzero_voltage)
-            demodulated(idx-3) = 0;
-            demodulated(idx-2) = 0;
-            demodulated(idx-1) = 0;
-            demodulated(idx) = 0;
-        else
-            demodulated(idx) = 1;
-            prv_nonzero_voltage = -prv_nonzero_voltage;
-        endif
-        idx = idx + 1;
-    endif
+for i = 1:length(modulation)
+  demodulation(index) = modulation(i)/voltage;
+  if time(i)*bitrate >= index
+    index = index+1;
+  endif
 endfor
 
-disp("Orginal bits:");
-disp(bits);
+last = 0;
+for i = 1:length(demodulation)
+  if demodulation(i) != 0
+    if last != 0 && demodulation(i) == last
+      for j = -3:0
+        demodulation(i+j) = 0;
+      endfor
+    endif
+    last = demodulation(i);
+  endif
+endfor
 
-disp("Demodulation:");
-disp(demodulated);
+demodulation = abs(demodulation);
 
+disp(demodulation);
